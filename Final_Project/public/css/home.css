@@ -1,0 +1,11 @@
+.center{
+    text-align: center;
+    padding-top: 250px;
+    color: white;
+}
+
+body{
+    background-image: url("https://upload.wikimedia.org/wikipedia/commons/d/dd/Louvain-la-Neuve_-_Grand%27Place.jpg");
+    /* Image taken by Virgile Pypaert under Creative Commnons Attribution-Share Alike 4.0 International: https://creativecommons.org/licenses/by-sa/4.0/deed.en*/
+    background-size: cover;
+}
