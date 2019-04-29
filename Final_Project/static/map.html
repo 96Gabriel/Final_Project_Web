@@ -43,8 +43,14 @@
 
     <div id="map"></div>
 
+
+    
     <ul class="list-group">
-        <li class="list-group-item">Party at La Casa</li>
+        {{#arr}}
+        <li class="list-group-item">
+            {{name}}
+        </li>
+        {{/arr}}
       </ul>
     
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
