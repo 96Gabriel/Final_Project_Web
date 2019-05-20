@@ -7,14 +7,22 @@ var express = require("express"),
     session = require("express-session"),
     https = require("https"),
     fs = require("fs"),
-    var {Client} = require("@elastic/elasticsearch"),
+    crypto = require("crypto"),
     database;
 
 app.engine('html', consolidate.hogan);
 app.set("views", "static");
 app.use(express.static(__dirname + "/public"));
 app.use(body_parser.urlencoded({ extended: true }));
-var client = new Client({node: "http://localhost:9200"});
+const users = "users";
+const events = "events"
+
+function hash_password(password){
+    var hash = crypto.createHmac('sha256', password)
+                     .update("I love apples")
+                     .digest("hex");
+    return hash;
+}
 
 app.use(session({
     secret: 'even_map_louvain_9849814u'
@@ -26,12 +34,39 @@ MongoClient.connect("mongodb://localhost:27017", { useNewUrlParser: true }, (err
     database = dbo;
 });
 
+function getMaxIndexSpecial(arr){
+    var max = 0;
+    var maxIndex = 0;
+    for(var l = 0; l < arr.length; l++){
+        if(max < arr[l].num){
+            max = arr[l].num;
+            maxIndex = l;
+        }
+    }
+    return l;
+}
+
+function deleteEntriesSpecial(arr){
+    for(var m = 0; m < arr.length; m++){
+        if(arr[m].num === 0){
+            arr.splice(m, 1);
+        }
+    }
+    return arr;
+}
+
 app.get("/", function (req, res) {
-    res.render("home.html");
+    var username;
+    if(req.session.username){
+        username = req.session.username;
+    }else{
+        username = "Username";
+    }
+    res.render("home.html", {username: username});
 });
 
 app.get("/map", function (req, res) {
-    database.collection("events").find({}, (err, doc) => {
+    database.collection(events).find({}, (err, doc) => {
         if (err) throw err;
         var events = {};
         events.arr = [];
@@ -42,18 +77,68 @@ app.get("/map", function (req, res) {
     });
 });
 
+app.get("/search", function(req, res){
+    var search_query = req.query.text;
+    database.collection(events).find({ $text: {$search: search_query}}, (err, doc) => {
+        if (err) throw err;
+        var events = {};
+        events.arr = [];
+        doc.each(function (err, doc) {
+            events.arr.push(doc);
+        });
+        res.render("map.html", events);
+    });
+
+});
+
 app.get("/login", function (req, res) {
-    res.render("login.html");
+    if(!req.session.username){
+        res.render("login.html");
+    }else{
+        res.redirect("/");
+    }
 });
 
 app.post("/login", function (req, res) {
     var username = req.body.username;
     var password = req.body.password;
-    if (username === "google" && password === "event_maps_secret") {
-        req.session.username = "google";
-        res.redirect("/event");
-    } else {
+    var hash = hash_password(password);
+    console.log(hash);
+    var query = {"username": username, "password": hash};
+    database.collection(users).findOne(query, function(err, result){
+        if(err) throw err; 
+        if(result){ 
+            req.session.username = username;
+            res.redirect("/");
+        }else{
+            res.redirect("/login");
+        }
+    });
+});
+
+app.post("/sign_up", function(req, res){
+    var username = req.body.username2;
+    var password = req.body.password2;
+    var confirm_password = req.body.confirmPassword;
+
+    var hash1 = hash_password(password);
+    var hash2 = hash_password(confirm_password);
+    if(hash1 != hash2){
         res.redirect("/login");
+    }else{
+        var new_user = {"username": username, "password": hash1};
+        database.collection(users).findOne(new_user, function(err, result){
+            if(err) throw error;
+            if(result){
+                res.redirect("/login");
+            }else{
+                database.collection(users).insertOne(new_user, function(err, doc){
+                    if(err) throw error;
+                    req.session.username = username;
+                    res.redirect("/");
+                });
+            }
+        });
     }
 });
 
@@ -81,7 +166,7 @@ app.post("/event", function (req, res) {
             longitude: longitude
         };
 
-        database.collection("events").insertOne(new_event, function (err, doc) {
+        database.collection(events).insertOne(new_event, function (err, doc) {
             if (err) throw error;
             res.redirect("/map");
         });

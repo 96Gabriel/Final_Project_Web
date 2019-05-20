@@ -7,12 +7,14 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+        integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+        crossorigin="" />
     <link rel="stylesheet" href="./map.css">
     <title>Louvain Events - Map</title>
     <style>
-        #map{
-            height: 400px;
-            width: 100%;
+        #mapid {
+            height: 900px;
         }
     </style>
 </head>
@@ -34,25 +36,29 @@
                     <a class="nav-link active" href="/event">New Event</a>
                 </li>
             </ul>
-            <form action="#" class="form-inline my-2 my-sm-0">
-                <input class="form-control mr-sm-2" type="text" placeholder="Search for a event">
+            <form action="/search" class="form-inline my-2 my-sm-0" method="GET">
+                <input class="form-control mr-sm-2" type="text" placeholder="Search for a event" name="text">
                 <button class="btn btn-success my-2 my-sm-0">Search</button>
             </form>
         </div>
     </nav>
 
-    <div id="map"></div>
+    <div id="mapid"></div>
 
-
-    
-    <ul class="list-group">
+    <ul hidden>
         {{#arr}}
-        <li class="list-group-item">
-            {{name}}
+        <li>
+            <span class="name">{{name}}ä</span>
+            <span class="description">{{description}}ä</span>
+            <span class="address">{{location}}ä</span>
+            <span hidden class="date">{{day}} </span>
+            <span hidden class="time">{{time}}ä</span>
+            <span class="lat">{{latitude}} </span>
+            <span class="lng">{{longitude}} </span>
         </li>
         {{/arr}}
-      </ul>
-    
+    </ul>
+
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
         integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
         crossorigin="anonymous"></script>
@@ -62,17 +68,65 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
         integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
         crossorigin="anonymous"></script>
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDWr20jZouZFlealWkORia3C8CcaOX7IhQ=initMap"></script>
-    <script>
-        function initMap() {
-            var options = {
-                zoom: 10,
-                center: { lat: 50.668081, lng: 4.6118324 }
-            };
 
-            var map = new google.maps.Map(document.getElementById("map"), options);
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+        integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+        crossorigin=""></script>
+
+    <script>
+        var mymap = L.map('mapid').setView([50.668081, 4.6118324], 13);
+        L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZy1sdXRpYW5vIiwiYSI6ImNqdnc3cmF1ZDAxMGk0M21xMHJiMHMweHgifQ.W3t240CsR5P7r01xJgvltg', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox.streets',
+            accessToken: 'your.mapbox.access.token'
+        }).addTo(mymap);
+        
+        var name = $(".name").text();
+        var description = $(".description").text();
+        var address = $(".address").text();
+        var date = $(".date").text();
+        var time = $(".time").text();
+        var lat = $(".lat").text();
+        var lng = $(".lng").text();
+
+
+        var arr_name = name.split("ä");
+        var arr_description = description.split("ä");
+        var arr_address = address.split("ä");
+        var arr_date = date.split(" ");
+        var arr_time = time.split("ä");
+        var arr_lat = lat.split(" ");
+        var arr_lng = lng.split(" ");
+
+        function setPopupMsg(name, description, address, date, time){
+            var string = "<ul>";
+            string += "<li> <b> " +  name +  "</b> </li>";
+            string += "<li>" +  description +  "</li>";
+            string += "<li>" +  address +  "</li>";
+            string += "<li>" +  date +  "</li>";
+            string += "<li>" +  time +  "</li>";
+            string += "</ul>";
+            return string;
         }
+
+        var length = arr_lat.length;
+        for(var i = 0; i < length; i++){
+            var obj = {};
+            obj.name = arr_name[i];
+            obj.description = arr_description[i];
+            obj.address = arr_address[i];
+            obj.date = arr_date[i];
+            obj.time = arr_time[i];
+            obj.latitude = arr_lat[i];
+            obj.longitude = arr_lng[i];
+            var marker = L.marker([arr_lat[i], arr_lng[i]]).addTo(mymap);
+            var popMsg = setPopupMsg(obj.name, obj.description, obj.address, obj.date, obj.time);
+            marker.bindPopup(popMsg);
+        }
+
+
+
     </script>
 </body>
 
